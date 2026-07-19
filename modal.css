@@ -1,0 +1,230 @@
+/* ===== Auth Modal ===== */
+.auth-modal {
+    max-width: 420px;
+}
+
+.auth-btn {
+    background: #4285f4;
+    color: white;
+    margin-bottom: 12px;
+}
+
+.auth-btn:hover {
+    background: #357ae8;
+    box-shadow: 0 4px 20px rgba(66, 133, 244, 0.3);
+}
+
+.btn-secondary {
+    width: 100%;
+    padding: 12px 20px;
+    background: transparent;
+    color: var(--ink-dim);
+    border: 1px solid var(--panel-border);
+    border-radius: 6px;
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition);
+}
+
+.btn-secondary:hover {
+    border-color: var(--brass-dim);
+    color: var(--ink);
+}
+
+.auth-divider {
+    display: flex;
+    align-items: center;
+    margin: 16px 0;
+    color: var(--muted);
+    font-size: 0.8rem;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--panel-border);
+    margin: 0 12px;
+}
+
+.auth-benefits {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 12px;
+    font-size: 0.85rem;
+    color: var(--ink-dim);
+}
+
+.auth-benefits span {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* ===== Stats Panel ===== */
+.stats-panel {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-top: 20px;
+    display: none;
+}
+
+.stats-panel.visible {
+    display: block;
+}
+
+.stats-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--panel-border);
+    margin-bottom: 16px;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+}
+
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 2px solid var(--brass-dim);
+}
+
+.user-name {
+    font-weight: 600;
+    color: var(--ink);
+}
+
+.user-email {
+    font-size: 0.75rem;
+    color: var(--muted);
+    display: block;
+}
+
+.btn-logout {
+    background: transparent;
+    border: 1px solid var(--panel-border);
+    color: var(--ink-dim);
+    padding: 6px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    transition: all var(--transition);
+}
+
+.btn-logout:hover {
+    border-color: var(--error);
+    color: var(--error);
+}
+
+.stats-grid-main {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.stat-card-large {
+    background: var(--bg-alt);
+    padding: 16px;
+    border-radius: 8px;
+    text-align: center;
+    border: 1px solid var(--panel-border);
+}
+
+.stat-value-large {
+    font-family: var(--font-mono);
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--brass-light);
+    display: block;
+    margin-top: 4px;
+}
+
+.stats-difficulty h4,
+.stats-history h4 {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 12px;
+}
+
+.difficulty-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.diff-stat {
+    background: var(--bg-alt);
+    padding: 10px;
+    border-radius: 6px;
+    text-align: center;
+    border: 1px solid var(--panel-border);
+}
+
+.diff-stat .diff-name {
+    font-size: 0.7rem;
+    color: var(--muted);
+    text-transform: uppercase;
+}
+
+.diff-stat .diff-winrate {
+    font-family: var(--font-mono);
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--brass-light);
+}
+
+.history-list {
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+.history-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 10px;
+    background: var(--bg-alt);
+    border-radius: 4px;
+    margin-bottom: 4px;
+    font-size: 0.8rem;
+}
+
+.history-item .result-win {
+    color: var(--success);
+}
+
+.history-item .result-loss {
+    color: var(--error);
+}
+
+/* Mobile adjustments */
+@media (max-width: 480px) {
+    .stats-grid-main {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .difficulty-stats {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .user-info {
+        flex-wrap: wrap;
+    }
+}

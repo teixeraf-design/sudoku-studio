@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sudoku Master Studio</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="sudoku_studio.css">
+    <link rel="stylesheet" href="modal.css">
+    
+    <!-- ===== PWA CONFIGURAÇÃO COMPLETA ===== -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#12151c">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Sudoku Studio">
+    <meta name="mobile-web-app-capable" content="yes">
+    
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
+    
+    <!-- ===== FIREBASE ===== -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
+	 
+    <script>
+    // ===== SERVICE WORKER =====
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('sw.js', { scope: '/' })
+                .then(registration => {
+                    console.log('✅ Service Worker registrado com sucesso!', registration);
+                })
+                .catch(err => {
+                    console.log('❌ Service Worker falhou: ', err);
+                });
+        });
+    }
+
+    // ===== PWA DETECTION =====
+    window.addEventListener('load', () => {
+        const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
+                      window.navigator.standalone === true;
+        if (isPWA) {
+            console.log('📱 Rodando como PWA (modo standalone)');
+            document.body.classList.add('pwa-mode');
+        }
+    });
+
+    // ===== PWA INSTALL =====
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        console.log('📲 PWA pode ser instalado!');
+        
+        const installBtn = document.createElement('button');
+        installBtn.textContent = '📲 Instalar App';
+        installBtn.className = 'btn-install-pwa';
+        installBtn.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #c9a253;
+            color: #12151c;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(201, 162, 83, 0.4);
+            z-index: 9999;
+            animation: none;
+            display: none;
+        `;
+        
+        setTimeout(() => {
+            installBtn.style.display = 'block';
+            document.body.appendChild(installBtn);
+        }, 3000);
+        
+        installBtn.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const result = await deferredPrompt.userChoice;
+                console.log('Usuário ' + result.outcome);
+                deferredPrompt = null;
+                installBtn.remove();
+            }
+        });
+    });
+
+    window.addEventListener('appinstalled', () => {
+        console.log('✅ App instalado com sucesso!');
+        const btn = document.querySelector('.btn-install-pwa');
+        if (btn) btn.remove();
+    });
+    </script>
+	
+    
+    <style>
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        .btn-install-pwa:hover {
+            transform: scale(1.05) !important;
+        }
+        .pwa-mode .app-header .eyebrow::after {
+            content: " · 📱 App";
+            color: #4fae82;
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <header class="app-header">
+            <div class="header-content">
+                <span class="eyebrow">⚡ Gerador Procedural · 9×9</span>
+                <h1>Sudoku Studio</h1>
+                <p>Gere. Jogue. Supere-se.</p>
+            </div>
+        </header>
+
+        <div class="app-main">
+            <!-- Controls Panel -->
+            <aside class="controls-panel">
+                <div class="controls-inner">
+                    <div class="control-group">
+                        <label for="difficulty-preset">Nível de Dificuldade</label>
+                        <select id="difficulty-preset" class="empty">
+                            <option value="" class="placeholder-option" selected disabled>— Selecione —</option>
+                            <option value="facil">Fácil</option>
+                            <option value="medio">Médio</option>
+                            <option value="dificil">Difícil</option>
+                            <option value="especialista">Especialista</option>
+                            <option value="genio">Gênio</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <div class="slider-header">
+                            <label for="clues-slider">Quantidade de Pistas</label>
+                            <span class="clues-badge empty" id="clues-val">—</span>
+                        </div>
+                        <input type="range" id="clues-slider" min="17" max="50" value="37" disabled>
+                        <span class="help-text">Mínimo matemático: 17 pistas</span>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="errors-preset">Limite de Erros (Vidas)</label>
+                        <select id="errors-preset" class="empty">
+                            <option value="" class="placeholder-option" selected disabled>— Selecione —</option>
+                            <option value="12">12 Erros</option>
+                            <option value="8">8 Erros</option>
+                            <option value="6">6 Erros</option>
+                            <option value="4">4 Erros</option>
+                            <option value="2">2 Erros</option>
+                            <option value="livre">Modo Livre</option>
+                        </select>
+                    </div>
+
+                    <button id="btn-new-game" class="btn-primary">
+                        <span class="btn-icon">✦</span>
+                        Gerar Tabuleiro
+                    </button>
+
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <span class="stat-label">Erros</span>
+                            <span id="errors-counter" class="stat-value">0 / ∞</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-label">Status</span>
+                            <span id="game-status" class="stat-value status-idle">Aguardando</span>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Board Area -->
+            <section class="board-area">
+                <div class="board-frame">
+                    <!-- Timer -->
+                    <div class="timer-container">
+                        <div class="timer-display" id="timer-display">00:00</div>
+                        <button class="timer-btn" id="timer-pause-btn" title="Pausar/Retomar">
+                            <span id="pause-icon">⏸</span>
+                        </button>
+                        <button class="timer-btn reset-btn" id="timer-reset-btn" title="Resetar jogo">
+                            <span>⟳</span>
+                        </button>
+                    </div>
+                    
+                    <!-- Grid Wrapper com Overlay -->
+                    <div class="grid-wrapper">
+                        <!-- Overlay de boas-vindas -->
+                        <div class="grid-overlay" id="grid-overlay">
+                            <div class="overlay-content">
+                                <span class="overlay-icon">🧩</span>
+                                <h3>Pronto para começar?</h3>
+                                <p>Clique no botão abaixo<br>e selecione a dificuldade do jogo</p>
+                                <div class="mobile-hint">
+                                   <button class="hint-btn" id="btn-scroll-to-controls">
+                                       <span class="icon">⬇</span> Configurar Jogo
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Grid -->
+                        <div id="sudoku-grid" class="sudoku-grid" role="grid" aria-label="Tabuleiro Sudoku"></div>
+                    </div>
+                </div>
+
+                <!-- Virtual Keypad -->
+                <div class="virtual-keypad" role="group" aria-label="Teclado virtual">
+                    <button class="key-btn" data-val="1">1</button>
+                    <button class="key-btn" data-val="2">2</button>
+                    <button class="key-btn" data-val="3">3</button>
+                    <button class="key-btn" data-val="4">4</button>
+                    <button class="key-btn" data-val="5">5</button>
+                    <button class="key-btn" data-val="6">6</button>
+                    <button class="key-btn" data-val="7">7</button>
+                    <button class="key-btn" data-val="8">8</button>
+                    <button class="key-btn" data-val="9">9</button>
+                    <button class="key-btn btn-clear" data-val="0">✕</button>
+                </div>
+
+                <!-- Stats Panel (visível apenas logado) -->
+                <div class="stats-panel" id="stats-panel">
+                    <div class="stats-header">
+                        <div class="user-info">
+                            <img id="user-avatar" src="" alt="Avatar" class="user-avatar">
+                            <div>
+                                <span id="user-name" class="user-name">Convidado</span>
+                                <span class="user-email" id="user-email">guest@sudoku.studio</span>
+                            </div>
+                            <button id="btn-logout" class="btn-logout">Sair</button>
+                        </div>
+                    </div>
+                    
+                    <div class="stats-grid-main">
+                        <div class="stat-card-large">
+                            <span class="stat-label">🎯 Taxa de Vitória</span>
+                            <span class="stat-value-large" id="win-rate">0%</span>
+                        </div>
+                        <div class="stat-card-large">
+                            <span class="stat-label">🏆 Sequência Atual</span>
+                            <span class="stat-value-large" id="current-streak">0</span>
+                        </div>
+                        <div class="stat-card-large">
+                            <span class="stat-label">⚡ Melhor Sequência</span>
+                            <span class="stat-value-large" id="best-streak">0</span>
+                        </div>
+                        <div class="stat-card-large">
+                            <span class="stat-label">⏱️ Tempo Médio</span>
+                            <span class="stat-value-large" id="avg-time">0:00</span>
+                        </div>
+                    </div>
+
+                    <div class="stats-difficulty">
+                        <h4>Por Dificuldade</h4>
+                        <div class="difficulty-stats" id="difficulty-stats">
+                            <!-- Gerado dinamicamente -->
+                        </div>
+                    </div>
+
+                    <div class="stats-history">
+                        <h4>Últimas Partidas</h4>
+                        <div class="history-list" id="history-list">
+                            <!-- Gerado dinamicamente -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <footer class="app-footer">
+            Motor de geração roda 100% no navegador · sem envio de dados · por Rafael Teixeira · 2026 © 
+        </footer>
+    </div>
+
+    <!-- ===== MODAL DE LOGIN ===== -->
+    <div id="auth-modal" class="modal-overlay" role="dialog" aria-modal="true">
+        <div class="modal-content auth-modal">
+            <div class="modal-icon">🔐</div>
+            <h2>Entrar no Sudoku Studio</h2>
+            <p>Faça login para salvar suas estatísticas<br>e competir com outros jogadores!</p>
+            <button id="btn-google-login" class="btn-primary auth-btn">
+                <span class="btn-icon">🅶</span>
+                Entrar com Google
+            </button>
+            <button id="btn-guest-play" class="btn-secondary">
+                Jogar como Convidado
+            </button>
+            <div class="auth-divider">
+                <span>ou</span>
+            </div>
+            <div class="auth-benefits">
+                <span>✅ Estatísticas salvas</span>
+                <span>✅ Histórico de partidas</span>
+                <span>✅ Ranking global</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MODAL DE FIM DE JOGO ===== -->
+    <div id="modal-overlay" class="modal-overlay" role="dialog" aria-modal="true">
+        <div class="modal-content">
+            <div class="modal-icon" id="modal-icon">🎉</div>
+            <h2 id="modal-title">Fim de Jogo!</h2>
+            <p id="modal-message">Você cometeu erros demais.</p>
+            <button id="modal-btn-restart" class="btn-primary">Jogar Novamente</button>
+        </div>
+    </div>
+
+    <!-- ===== SCRIPTS ===== -->
+    <script src="firebase_config.js"></script>
+    <script src="js/sudoku_engine.js"></script>
+    <script src="js/sudoku_firebase.js"></script>
+    <script src="js/sudoku_ui_part1.js"></script>
+    <script src="js/sudoku_ui_part2.js"></script>
+    
+    <!-- ===== INICIALIZAÇÃO MANUAL ===== -->
+    <script>
+    (function() {
+        console.log('🚀 Inicializador manual executando...');
+        
+        function initSudoku() {
+            try {
+                if (typeof SudokuUI === 'undefined') {
+                    console.error('❌ SudokuUI não encontrado!');
+                    return;
+                }
+                
+                if (window.sudokuUI) {
+                    console.log('ℹ️ SudokuUI já instanciado');
+                    return;
+                }
+                
+                console.log('🔄 Criando nova instância do SudokuUI...');
+                window.sudokuUI = new SudokuUI();
+                console.log('✅ SudokuUI instanciado com sucesso!');
+                
+                // Verificar se os eventos foram vinculados
+                if (window.sudokuUI._bindEvents) {
+                    console.log('✅ Métodos disponíveis');
+                }
+            } catch (error) {
+                console.error('❌ Erro ao instanciar SudokuUI:', error);
+            }
+        }
+        
+        // Aguardar o DOM carregar
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            setTimeout(initSudoku, 100);
+        } else {
+            document.addEventListener('DOMContentLoaded', function() {
+                setTimeout(initSudoku, 100);
+            });
+        }
+    })();
+    </script>
+</body>
+</html>
