@@ -1,7 +1,7 @@
 {
   "name": "Sudoku Studio",
   "short_name": "Sudoku",
-  "description": "Gere e jogue tabuleiros de Sudoku customizados",
+  "description": "Gerador procedural de Sudoku 9x9 com estatísticas e Firebase",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#12151c",
