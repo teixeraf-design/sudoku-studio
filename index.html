@@ -294,14 +294,24 @@
     })();
     </script>
 
-    <!-- ===== PWA - INSTALAÇÃO APÓS LOGIN ===== -->
-    <script>
-        // ===== PWA - INSTALAÇÃO APÓS LOGIN =====
-        let deferredPrompt;
-        let isUserLoggedIn = false;
-        let installButtonShown = false;
+<!-- ===== PWA - INSTALAÇÃO APÓS LOGIN ===== -->
+<script>
+    // ===== PWA - INSTALAÇÃO APÓS LOGIN =====
+    let deferredPrompt;
+    let isUserLoggedIn = false;
+    let installButtonShown = false;
 
-        // Detectar mudança no estado de login (via Firebase)
+    // Aguardar Firebase carregar
+    function initPWA() {
+        if (typeof firebase === 'undefined' || !firebase.apps.length) {
+            console.log('⏳ Aguardando Firebase...');
+            setTimeout(initPWA, 500);
+            return;
+        }
+
+        console.log('🔥 Firebase pronto para PWA');
+
+        // Detectar mudança no estado de login
         firebase.auth().onAuthStateChanged((user) => {
             isUserLoggedIn = !!user;
             console.log('🔐 Estado do usuário:', isUserLoggedIn ? 'Logado' : 'Deslogado');
@@ -312,76 +322,86 @@
                 hideInstallButton();
             }
         });
+    }
 
-        // Evento do navegador para instalação
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            console.log('📲 PWA disponível para instalação');
-            
-            if (isUserLoggedIn && !installButtonShown) {
-                showInstallButton();
+    // Evento do navegador para instalação
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        console.log('📲 PWA disponível para instalação');
+        
+        if (isUserLoggedIn && !installButtonShown) {
+            showInstallButton();
+        }
+    });
+
+    function showInstallButton() {
+        if (installButtonShown) return;
+        installButtonShown = true;
+        
+        const installBtn = document.createElement('button');
+        installBtn.id = 'btn-install-pwa';
+        installBtn.textContent = '📲 Instalar App';
+        installBtn.style.cssText = `
+            position: fixed; bottom: 20px; right: 20px;
+            background: #c9a253; color: #12151c;
+            border: none; padding: 14px 28px;
+            border-radius: 30px; font-weight: 700;
+            font-size: 16px; cursor: pointer;
+            box-shadow: 0 6px 30px rgba(201, 162, 83, 0.5);
+            z-index: 9999;
+            animation: pulse 2s infinite;
+        `;
+        
+        document.body.appendChild(installBtn);
+        
+        installBtn.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const result = await deferredPrompt.userChoice;
+                console.log('📲 Instalação:', result.outcome);
+                deferredPrompt = null;
+                installBtn.remove();
+                installButtonShown = false;
             }
         });
+    }
 
-        function showInstallButton() {
-            if (installButtonShown) return;
-            installButtonShown = true;
-            
-            const installBtn = document.createElement('button');
-            installBtn.id = 'btn-install-pwa';
-            installBtn.textContent = '📲 Instalar App';
-            installBtn.style.cssText = `
-                position: fixed; bottom: 20px; right: 20px;
-                background: #c9a253; color: #12151c;
-                border: none; padding: 14px 28px;
-                border-radius: 30px; font-weight: 700;
-                font-size: 16px; cursor: pointer;
-                box-shadow: 0 6px 30px rgba(201, 162, 83, 0.5);
-                z-index: 9999;
-                animation: pulse 2s infinite;
-            `;
-            
-            document.body.appendChild(installBtn);
-            
-            installBtn.addEventListener('click', async () => {
-                if (deferredPrompt) {
-                    deferredPrompt.prompt();
-                    const result = await deferredPrompt.userChoice;
-                    console.log('📲 Instalação:', result.outcome);
-                    deferredPrompt = null;
-                    installBtn.remove();
-                    installButtonShown = false;
-                }
-            });
-        }
+    function hideInstallButton() {
+        document.getElementById('btn-install-pwa')?.remove();
+        installButtonShown = false;
+    }
 
-        function hideInstallButton() {
-            document.getElementById('btn-install-pwa')?.remove();
-            installButtonShown = false;
-        }
+    // App já instalado
+    window.addEventListener('appinstalled', () => {
+        console.log('✅ App instalado com sucesso!');
+        hideInstallButton();
+    });
 
-        // App já instalado
-        window.addEventListener('appinstalled', () => {
-            console.log('✅ App instalado com sucesso!');
-            hideInstallButton();
+    // Detecta se já está rodando como PWA
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+        console.log('📱 Rodando como PWA');
+        document.body.classList.add('pwa-mode');
+    }
+
+    // Iniciar PWA quando o DOM carregar
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        setTimeout(initPWA, 200);
+    } else {
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(initPWA, 200);
         });
+    }
 
-        // Detecta se já está rodando como PWA
-        if (window.matchMedia('(display-mode: standalone)').matches) {
-            console.log('📱 Rodando como PWA');
-            document.body.classList.add('pwa-mode');
-        }
-
-        // Service Worker
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js')
-                    .then(reg => console.log('✅ Service Worker registrado!', reg))
-                    .catch(err => console.log('❌ Service Worker falhou:', err));
-            });
-        }
-    </script>
+    // Service Worker
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('sw.js')
+                .then(reg => console.log('✅ Service Worker registrado!', reg))
+                .catch(err => console.log('❌ Service Worker falhou:', err));
+        });
+    }
+</script>
 
 </body>
 </html>
