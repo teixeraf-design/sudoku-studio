@@ -121,6 +121,19 @@
             color: #4fae82;
         }
     </style>
+	
+	<script>
+    // Detectar se está em produção ou desenvolvimento
+    const isProduction = window.location.hostname !== 'localhost' && 
+                         window.location.hostname !== '127.0.0.1';
+    
+    if (isProduction) {
+        console.log('🚀 Rodando em produção:', window.location.hostname);
+    } else {
+        console.log('🔧 Rodando em desenvolvimento (localhost)');
+    }
+</script>
+
 </head>
 <body>
     <div class="app">

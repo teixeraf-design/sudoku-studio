@@ -11,6 +11,7 @@ const firebaseConfig = {
     appId: "1:1039085979567:web:19eca98195f4c61242915a"
 };
 
-// Exportar para uso global (NÃO inicializar aqui!)
+// Exportar para uso global
 window.firebaseConfig = firebaseConfig;
 console.log('📦 firebaseConfig carregado!');
+console.log('🌐 Domínio:', window.location.origin);
