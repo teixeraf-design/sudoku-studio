@@ -36,64 +36,38 @@
     // ===== SERVICE WORKER =====
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('sw.js', { scope: '/' })
-                .then(registration => {
-                    console.log('✅ Service Worker registrado com sucesso!', registration);
-                })
-                .catch(err => {
-                    console.log('❌ Service Worker falhou: ', err);
-                });
+            navigator.serviceWorker.register('sw.js')
+                .then(reg => console.log('✅ Service Worker registrado!', reg))
+                .catch(err => console.log('❌ Service Worker falhou:', err));
         });
     }
-
-    // ===== PWA DETECTION =====
-    window.addEventListener('load', () => {
-        const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
-                      window.navigator.standalone === true;
-        if (isPWA) {
-            console.log('📱 Rodando como PWA (modo standalone)');
-            document.body.classList.add('pwa-mode');
-        }
-    });
 
     // ===== PWA INSTALL =====
     let deferredPrompt;
     window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         deferredPrompt = e;
-        console.log('📲 PWA pode ser instalado!');
         
         const installBtn = document.createElement('button');
         installBtn.textContent = '📲 Instalar App';
         installBtn.className = 'btn-install-pwa';
         installBtn.style.cssText = `
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: #c9a253;
-            color: #12151c;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 30px;
-            font-weight: 700;
-            font-size: 14px;
-            cursor: pointer;
+            position: fixed; bottom: 20px; right: 20px;
+            background: #c9a253; color: #12151c;
+            border: none; padding: 12px 24px;
+            border-radius: 30px; font-weight: 700;
+            font-size: 14px; cursor: pointer;
             box-shadow: 0 4px 20px rgba(201, 162, 83, 0.4);
             z-index: 9999;
-            animation: none;
-            display: none;
         `;
         
-        setTimeout(() => {
-            installBtn.style.display = 'block';
-            document.body.appendChild(installBtn);
-        }, 3000);
+        document.body.appendChild(installBtn);
         
         installBtn.addEventListener('click', async () => {
             if (deferredPrompt) {
                 deferredPrompt.prompt();
                 const result = await deferredPrompt.userChoice;
-                console.log('Usuário ' + result.outcome);
+                console.log('Instalação:', result.outcome);
                 deferredPrompt = null;
                 installBtn.remove();
             }
@@ -101,11 +75,11 @@
     });
 
     window.addEventListener('appinstalled', () => {
-        console.log('✅ App instalado com sucesso!');
-        const btn = document.querySelector('.btn-install-pwa');
-        if (btn) btn.remove();
+        console.log('✅ App instalado!');
+        document.querySelector('.btn-install-pwa')?.remove();
     });
-    </script>
+</script>
+   
 	
     
     <style>
