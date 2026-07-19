@@ -23,6 +23,8 @@ Gerador procedural de Sudoku 9x9 com estatísticas em tempo real e integração 
 - Firebase Firestore
 - PWA (Service Worker)
 
+## 🚀 Como executar
+
 ### Localmente:
 ```bash
 python -m http.server 8000
