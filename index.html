@@ -14,103 +14,22 @@
     <link rel="stylesheet" href="sudoku_studio.css">
     <link rel="stylesheet" href="modal.css">
     
-   <!-- ===== PWA CONFIGURAÇÃO COMPLETA ===== -->
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#12151c">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Sudoku Studio">
-<meta name="mobile-web-app-capable" content="yes">
-
-<link rel="icon" type="image/x-icon" href="favicon.ico">
-<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
-<link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
-	
-	
+    <!-- ===== PWA CONFIGURAÇÃO COMPLETA ===== -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#12151c">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Sudoku Studio">
+    <meta name="mobile-web-app-capable" content="yes">
+    
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
     
     <!-- ===== FIREBASE ===== -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-	
-	    <!-- ===== DIAGNÓSTICO ===== -->
-    <script>
-        console.log('🔍 DIAGNÓSTICO - Verificando caminhos...');
-        console.log('📍 URL atual:', window.location.href);
-        console.log('📍 Origem:', window.location.origin);
-        console.log('📍 Caminho base:', window.location.pathname);
-        
-        // Verificar se os arquivos existem
-        function checkFile(url) {
-            fetch(url)
-                .then(response => {
-                    if (response.ok) {
-                        console.log('✅', url, '- Encontrado!');
-                    } else {
-                        console.log('❌', url, '- NÃO ENCONTRADO (Status:', response.status, ')');
-                    }
-                })
-                .catch(err => console.log('❌', url, '- Erro ao acessar:', err));
-        }
-        
-        // Testar cada arquivo
-        checkFile('firebase_config.js');
-        checkFile('js/sudoku_engine.js');
-        checkFile('js/sudoku_firebase.js');
-        checkFile('js/sudoku_ui_part1.js');
-        checkFile('js/sudoku_ui_part2.js');
-    </script>
-    
-	 
-    <script>
-    // ===== SERVICE WORKER =====
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('sw.js')
-                .then(reg => console.log('✅ Service Worker registrado!', reg))
-                .catch(err => console.log('❌ Service Worker falhou:', err));
-        });
-    }
-
-    // ===== PWA INSTALL =====
-    let deferredPrompt;
-    window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredPrompt = e;
-        
-        const installBtn = document.createElement('button');
-        installBtn.textContent = '📲 Instalar App';
-        installBtn.className = 'btn-install-pwa';
-        installBtn.style.cssText = `
-            position: fixed; bottom: 20px; right: 20px;
-            background: #c9a253; color: #12151c;
-            border: none; padding: 12px 24px;
-            border-radius: 30px; font-weight: 700;
-            font-size: 14px; cursor: pointer;
-            box-shadow: 0 4px 20px rgba(201, 162, 83, 0.4);
-            z-index: 9999;
-        `;
-        
-        document.body.appendChild(installBtn);
-        
-        installBtn.addEventListener('click', async () => {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                const result = await deferredPrompt.userChoice;
-                console.log('Instalação:', result.outcome);
-                deferredPrompt = null;
-                installBtn.remove();
-            }
-        });
-    });
-
-    window.addEventListener('appinstalled', () => {
-        console.log('✅ App instalado!');
-        document.querySelector('.btn-install-pwa')?.remove();
-    });
-</script>
-   
-	
     
     <style>
         @keyframes pulse {
@@ -125,19 +44,6 @@
             color: #4fae82;
         }
     </style>
-	
-	<script>
-    // Detectar se está em produção ou desenvolvimento
-    const isProduction = window.location.hostname !== 'localhost' && 
-                         window.location.hostname !== '127.0.0.1';
-    
-    if (isProduction) {
-        console.log('🚀 Rodando em produção:', window.location.hostname);
-    } else {
-        console.log('🔧 Rodando em desenvolvimento (localhost)');
-    }
-</script>
-
 </head>
 <body>
     <div class="app">
@@ -370,7 +276,6 @@
                 window.sudokuUI = new SudokuUI();
                 console.log('✅ SudokuUI instanciado com sucesso!');
                 
-                // Verificar se os eventos foram vinculados
                 if (window.sudokuUI._bindEvents) {
                     console.log('✅ Métodos disponíveis');
                 }
@@ -379,7 +284,6 @@
             }
         }
         
-        // Aguardar o DOM carregar
         if (document.readyState === 'complete' || document.readyState === 'interactive') {
             setTimeout(initSudoku, 100);
         } else {
@@ -389,5 +293,95 @@
         }
     })();
     </script>
+
+    <!-- ===== PWA - INSTALAÇÃO APÓS LOGIN ===== -->
+    <script>
+        // ===== PWA - INSTALAÇÃO APÓS LOGIN =====
+        let deferredPrompt;
+        let isUserLoggedIn = false;
+        let installButtonShown = false;
+
+        // Detectar mudança no estado de login (via Firebase)
+        firebase.auth().onAuthStateChanged((user) => {
+            isUserLoggedIn = !!user;
+            console.log('🔐 Estado do usuário:', isUserLoggedIn ? 'Logado' : 'Deslogado');
+            
+            if (isUserLoggedIn && deferredPrompt && !installButtonShown) {
+                showInstallButton();
+            } else if (!isUserLoggedIn) {
+                hideInstallButton();
+            }
+        });
+
+        // Evento do navegador para instalação
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            console.log('📲 PWA disponível para instalação');
+            
+            if (isUserLoggedIn && !installButtonShown) {
+                showInstallButton();
+            }
+        });
+
+        function showInstallButton() {
+            if (installButtonShown) return;
+            installButtonShown = true;
+            
+            const installBtn = document.createElement('button');
+            installBtn.id = 'btn-install-pwa';
+            installBtn.textContent = '📲 Instalar App';
+            installBtn.style.cssText = `
+                position: fixed; bottom: 20px; right: 20px;
+                background: #c9a253; color: #12151c;
+                border: none; padding: 14px 28px;
+                border-radius: 30px; font-weight: 700;
+                font-size: 16px; cursor: pointer;
+                box-shadow: 0 6px 30px rgba(201, 162, 83, 0.5);
+                z-index: 9999;
+                animation: pulse 2s infinite;
+            `;
+            
+            document.body.appendChild(installBtn);
+            
+            installBtn.addEventListener('click', async () => {
+                if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    const result = await deferredPrompt.userChoice;
+                    console.log('📲 Instalação:', result.outcome);
+                    deferredPrompt = null;
+                    installBtn.remove();
+                    installButtonShown = false;
+                }
+            });
+        }
+
+        function hideInstallButton() {
+            document.getElementById('btn-install-pwa')?.remove();
+            installButtonShown = false;
+        }
+
+        // App já instalado
+        window.addEventListener('appinstalled', () => {
+            console.log('✅ App instalado com sucesso!');
+            hideInstallButton();
+        });
+
+        // Detecta se já está rodando como PWA
+        if (window.matchMedia('(display-mode: standalone)').matches) {
+            console.log('📱 Rodando como PWA');
+            document.body.classList.add('pwa-mode');
+        }
+
+        // Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('✅ Service Worker registrado!', reg))
+                    .catch(err => console.log('❌ Service Worker falhou:', err));
+            });
+        }
+    </script>
+
 </body>
 </html>
