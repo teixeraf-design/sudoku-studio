@@ -97,19 +97,26 @@ class FirebaseManager {
     }
 
     async updateStats(uid, gameData) {
-        if (!this.db) return null;
+        if (!this.db) {
+            console.warn('⚠️ Firestore não inicializado');
+            return null;
+        }
 
         try {
             const userRef = this.db.collection('users').doc(uid);
             const doc = await userRef.get();
             
-            if (!doc.exists) return null;
+            if (!doc.exists) {
+                console.warn('⚠️ Documento do usuário não encontrado');
+                return null;
+            }
 
             const data = doc.data();
             const stats = data.stats;
             const difficulty = gameData.difficulty;
             const isWin = gameData.result === 'win';
 
+            // Atualizar estatísticas gerais
             stats.totalGames += 1;
             if (isWin) {
                 stats.totalWins += 1;
@@ -120,20 +127,25 @@ class FirebaseManager {
                 stats.currentStreak = 0;
             }
 
+            // Atualizar tempo
             stats.totalTime += gameData.time;
             stats.averageTime = Math.round(stats.totalTime / stats.totalGames);
 
+            // Atualizar por dificuldade
             const diffStats = stats.byDifficulty[difficulty];
-            diffStats.games += 1;
-            if (isWin) {
-                diffStats.wins += 1;
-                if (gameData.time < diffStats.bestTime || diffStats.bestTime === 0) {
-                    diffStats.bestTime = gameData.time;
+            if (diffStats) {
+                diffStats.games += 1;
+                if (isWin) {
+                    diffStats.wins += 1;
+                    if (gameData.time < diffStats.bestTime || diffStats.bestTime === 0) {
+                        diffStats.bestTime = gameData.time;
+                    }
+                } else {
+                    diffStats.losses += 1;
                 }
-            } else {
-                diffStats.losses += 1;
             }
 
+            // Atualizar histórico (manter últimos 50)
             const history = data.history || [];
             history.unshift({
                 difficulty: difficulty,
@@ -141,12 +153,17 @@ class FirebaseManager {
                 time: gameData.time,
                 errors: gameData.errors,
                 clues: gameData.clues,
-                date: firebase.firestore.FieldValue.serverTimestamp()
+                date: new Date().toISOString()  // ✅ CORRIGIDO: usar string ISO em vez de serverTimestamp()
             });
             if (history.length > 50) history.pop();
 
-            await userRef.update({ stats, history });
-            console.log('📊 Estatísticas salvas!');
+            // Salvar
+            await userRef.update({ 
+                stats: stats, 
+                history: history 
+            });
+            
+            console.log('📊 Estatísticas salvas com sucesso!');
             return { stats, history };
         } catch (error) {
             console.error('❌ Erro ao salvar stats:', error);
@@ -155,7 +172,10 @@ class FirebaseManager {
     }
 
     async getUserData(uid) {
-        if (!this.db) return null;
+        if (!this.db) {
+            console.warn('⚠️ Firestore não inicializado');
+            return null;
+        }
 
         try {
             const userRef = this.db.collection('users').doc(uid);
@@ -188,5 +208,6 @@ class FirebaseManager {
     }
 }
 
+// Exportar para uso global
 window.FirebaseManager = FirebaseManager;
 console.log('📦 FirebaseManager carregado!');
