@@ -182,6 +182,33 @@ SudokuUI.prototype._bindEvents = function() {
         });
     }
 
+// ===== BOTÃO FLUTUANTE DE REFRESH (Mobile) =====
+const refreshFloatBtn = document.getElementById('btn-refresh-stats-float');
+if (refreshFloatBtn) {
+    refreshFloatBtn.addEventListener('click', async () => {
+        console.log('⟳ Recarregando estatísticas (flutuante)...');
+        if (this.isAuthenticated && this.firebase && this.firebase.currentUser) {
+            await this._loadUserStats(this.firebase.currentUser.uid);
+            console.log('✅ Estatísticas recarregadas!');
+            // Feedback visual
+            refreshFloatBtn.style.transform = 'rotate(360deg)';
+            setTimeout(() => {
+                refreshFloatBtn.style.transform = 'rotate(0deg)';
+            }, 500);
+        } else {
+            console.warn('⚠️ Usuário não autenticado');
+        }
+    });
+}
+
+// Mostrar/ocultar botão flutuante baseado no login
+// No _onUserLoggedIn:
+// document.getElementById('btn-refresh-stats-float').style.display = 'flex';
+
+// No _updateUIForGuest:
+// document.getElementById('btn-refresh-stats-float').style.display = 'none';
+
+
     // Keyboard events
     document.addEventListener('keydown', (e) => {
         if (this.isIdle || this.isPaused || this.isGameOver) return;
