@@ -168,6 +168,20 @@ SudokuUI.prototype._bindEvents = function() {
         });
     }
 
+    // ===== BOTÃO PARA RECARREGAR ESTATÍSTICAS =====
+    const refreshBtn = document.getElementById('btn-refresh-stats');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', async () => {
+            console.log('⟳ Recarregando estatísticas...');
+            if (this.isAuthenticated && this.firebase && this.firebase.currentUser) {
+                await this._loadUserStats(this.firebase.currentUser.uid);
+                console.log('✅ Estatísticas recarregadas!');
+            } else {
+                console.warn('⚠️ Usuário não autenticado');
+            }
+        });
+    }
+
     // Keyboard events
     document.addEventListener('keydown', (e) => {
         if (this.isIdle || this.isPaused || this.isGameOver) return;
@@ -556,13 +570,20 @@ SudokuUI.prototype._endGame = async function(isWin) {
             clues: parseInt(this.cluesSlider.value)
         };
         
+        console.log('📊 Salvando estatísticas:', gameData);
+        
         try {
-            await this.firebase.updateStats(this.firebase.currentUser.uid, gameData);
+            const result = await this.firebase.updateStats(this.firebase.currentUser.uid, gameData);
+            console.log('📊 Resultado do save:', result);
+            
+            // 🔥 FORÇAR RECARREGAMENTO DAS ESTATÍSTICAS
             await this._loadUserStats(this.firebase.currentUser.uid);
-            console.log('📊 Estatísticas salvas!');
+            console.log('📊 Estatísticas recarregadas!');
         } catch (error) {
-            console.error('Erro ao salvar estatísticas:', error);
+            console.error('❌ Erro ao salvar estatísticas:', error);
         }
+    } else {
+        console.log('ℹ️ Usuário não autenticado - estatísticas não salvas');
     }
     
     // Mostrar modal
@@ -584,10 +605,23 @@ SudokuUI.prototype._endGame = async function(isWin) {
 
 // ===== Render Stats (completo) =====
 SudokuUI.prototype._renderStatsFull = function(data) {
-    console.log('📊 Renderizando estatísticas...');
+    console.log('📊 _renderStatsFull chamado com:', data);
+    
+    if (!data || !data.stats) {
+        console.warn('⚠️ Dados inválidos:', data);
+        return;
+    }
+    
     const stats = data.stats;
+    console.log('📊 Stats:', stats);
+    
     const total = stats.totalGames || 1;
     const winRate = Math.round((stats.totalWins / total) * 100);
+    
+    console.log('📊 Win Rate:', winRate, '%');
+    console.log('📊 Current Streak:', stats.currentStreak);
+    console.log('📊 Best Streak:', stats.bestStreak);
+    console.log('📊 Avg Time:', stats.averageTime);
     
     const winRateEl = document.getElementById('win-rate');
     const currentStreakEl = document.getElementById('current-streak');
@@ -596,10 +630,22 @@ SudokuUI.prototype._renderStatsFull = function(data) {
     const diffContainer = document.getElementById('difficulty-stats');
     const historyContainer = document.getElementById('history-list');
 
-    if (winRateEl) winRateEl.textContent = `${winRate}%`;
-    if (currentStreakEl) currentStreakEl.textContent = stats.currentStreak;
-    if (bestStreakEl) bestStreakEl.textContent = stats.bestStreak;
-    if (avgTimeEl) avgTimeEl.textContent = this._formatTime(stats.averageTime || 0);
+    if (winRateEl) {
+        winRateEl.textContent = `${winRate}%`;
+        console.log('✅ win-rate atualizado');
+    }
+    if (currentStreakEl) {
+        currentStreakEl.textContent = stats.currentStreak;
+        console.log('✅ current-streak atualizado');
+    }
+    if (bestStreakEl) {
+        bestStreakEl.textContent = stats.bestStreak;
+        console.log('✅ best-streak atualizado');
+    }
+    if (avgTimeEl) {
+        avgTimeEl.textContent = this._formatTime(stats.averageTime || 0);
+        console.log('✅ avg-time atualizado');
+    }
 
     // Renderizar por dificuldade
     if (diffContainer) {
@@ -612,18 +658,19 @@ SudokuUI.prototype._renderStatsFull = function(data) {
             genio: 'Gênio'
         };
 
-        Object.entries(stats.byDifficulty).forEach(([key, value]) => {
+        Object.entries(stats.byDifficulty || {}).forEach(([key, value]) => {
             const div = document.createElement('div');
             div.className = 'diff-stat';
             const games = value.games || 1;
             const winRateDiff = Math.round((value.wins / games) * 100);
             div.innerHTML = `
-                <div class="diff-name">${difficultyNames[key]}</div>
+                <div class="diff-name">${difficultyNames[key] || key}</div>
                 <div class="diff-winrate">${winRateDiff}%</div>
                 <div style="font-size:0.6rem;color:var(--muted)">${value.games} jogos</div>
             `;
             diffContainer.appendChild(div);
         });
+        console.log('✅ difficulty-stats atualizado');
     }
 
     // Renderizar histórico
@@ -642,7 +689,10 @@ SudokuUI.prototype._renderStatsFull = function(data) {
             `;
             historyContainer.appendChild(div);
         });
+        console.log('✅ history-list atualizado');
     }
+    
+    console.log('📊 Renderização completa!');
 };
 
 SudokuUI.prototype._formatTime = function(seconds) {
@@ -679,6 +729,5 @@ function initSudokuUI() {
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initSudokuUI);
 } else {
-    // DOM já está pronto
     setTimeout(initSudokuUI, 100);
 }

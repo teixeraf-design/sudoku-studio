@@ -85,11 +85,9 @@ class SudokuUI {
         if (typeof FirebaseManager !== 'undefined') {
             this.firebase = new FirebaseManager();
             
-            // Inicializar com config
             if (typeof firebaseConfig !== 'undefined') {
                 this.firebase.initialize(firebaseConfig);
                 
-                // Listener de autenticação
                 this.firebase.onAuthStateChanged((user) => {
                     console.log('🔐 Auth state changed:', user ? user.email : 'null');
                     if (user) {
@@ -113,8 +111,12 @@ class SudokuUI {
         this.isAuthenticated = true;
         this._closeAuthModal();
         this._updateUIForUser(user);
-        this._loadUserStats(user.uid);
+        
         console.log('👤 Usuário logado:', user.email);
+        console.log('📊 Carregando estatísticas do usuário...');
+        
+        // 🔥 FORÇAR CARREGAMENTO DAS ESTATÍSTICAS
+        this._loadUserStats(user.uid);
     }
 
     _updateUIForUser(user) {
@@ -142,23 +144,36 @@ class SudokuUI {
     }
 
     async _loadUserStats(uid) {
-        if (!this.firebase) return;
+        if (!this.firebase) {
+            console.warn('⚠️ Firebase não disponível');
+            return;
+        }
+        
+        console.log('📊 Buscando dados do usuário:', uid);
         
         try {
             const data = await this.firebase.getUserData(uid);
+            console.log('📊 Dados recebidos:', data);
+            
             if (data) {
                 this.userData = data;
+                console.log('📊 Renderizando estatísticas...');
                 this._renderStats(data);
+            } else {
+                console.warn('⚠️ Nenhum dado encontrado para o usuário');
             }
         } catch (error) {
-            console.error('Erro ao carregar stats:', error);
+            console.error('❌ Erro ao carregar stats:', error);
         }
     }
 
     _renderStats(data) {
-        // Implementado na parte 3B
+        console.log('📊 _renderStats chamado');
         if (typeof this._renderStatsFull === 'function') {
+            console.log('📊 Chamando _renderStatsFull...');
             this._renderStatsFull(data);
+        } else {
+            console.warn('⚠️ _renderStatsFull não está definido!');
         }
     }
 
